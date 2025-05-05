@@ -1,0 +1,72 @@
+(base) nhreyes@gallagher:~/Documents/159342_2024/TCP_secure_server_client_cross_platform_boost/secure_client$ ./secure_client.out fe80::15df:8ad7:cbfd:7b78%eno2 1155
+
+=== IPv6 ===
+Using port: 1155 
+
+Connected to <<<SERVER>>> extracted IP address: fe80::15df:8ad7:cbfd:7b78%eno2, IPv6 at port: 1155
+
+--------------------------------------------
+you may now start sending commands to the <<<SERVER>>>
+
+Type here:hello there!
+
+MSG SENT <--: hello there!
+
+Message length: 14 
+MSG RECEIVED --> Message:'hello there!' - There are 12 bytes of information
+
+Type here:we are actually talking
+
+MSG SENT <--: we are actually talking
+
+Message length: 25 
+MSG RECEIVED --> Message:'we are actually talking' - There are 23 bytes of information
+
+Type here:.
+
+--------------------------------------------
+<<<CLIENT>>> is shutting down...
+(base) nhreyes@gallagher:~/Documents/159342_2024/TCP_secure_server_client_cross_platform_boost/secure_client$ cd ..
+(base) nhreyes@gallagher:~/Documents/159342_2024/TCP_secure_server_client_cross_platform_boost$ ld
+ld: no input files
+(base) nhreyes@gallagher:~/Documents/159342_2024/TCP_secure_server_client_cross_platform_boost$ ls
+install_boost_library.txt  notes_napoleon.txt  run.bat  run.sh  secure_client  secure_server
+(base) nhreyes@gallagher:~/Documents/159342_2024/TCP_secure_server_client_cross_platform_boost$ cd secure_server/
+(base) nhreyes@gallagher:~/Documents/159342_2024/TCP_secure_server_client_cross_platform_boost/secure_server$ ls
+clean.bat               makefile         makefile_linux    makefile_windows_2  secure_server.exe  secure_server.out
+install_boost_unix.txt  makefile_backup  makefile_windows  secure_server.cpp   secure_server.o
+(base) nhreyes@gallagher:~/Documents/159342_2024/TCP_secure_server_client_cross_platform_boost/secure_server$ ./secure_server.out 1155
+
+===========================
+BOOST BIG NUMBER Example #1: 
+===========================
+Product of 98745636214564698 * 7459874565236544789 = 
+736630060025131838840151335215258722
+argv[1] = 1155
+
+<<<SERVER>>> is listening at PORT: 1155
+
+A <<<CLIENT>>> has been accepted.
+
+Connected to <<<Client>>> with IP address:fe80::15df:8ad7:cbfd:7b78%eno2, at Port:60445
+
+--------------------------------------------
+the <<<SERVER>>> is waiting to receive messages.
+MSG RECEIVED <--: hello there
+MSG SENT --> Message:'hello there' - There are 11 bytes of information
+
+MSG RECEIVED <--: aha
+MSG SENT --> Message:'aha' - There are 3 bytes of information
+
+MSG RECEIVED <--: hehe
+MSG SENT --> Message:'hehe' - There are 4 bytes of information
+
+MSG RECEIVED <--: i am talking to a linux server
+MSG SENT --> Message:'i am talking to a linux server' - There are 30 bytes of information
+
+
+disconnected from << Client >> with IP address:fe80::15df:8ad7:cbfd:7b78%eno2, Port:60445
+=============================================
+<<<SERVER>>> is listening at PORT: 1155
+^C
+(base) nhreyes@gallagher:~/Documents/159342_2024/TCP_secure_server_client_cross_platform_boost/secure_server$ 

@@ -1,0 +1,96 @@
+/////////////////////////////////////////////////////////////
+//
+// BOOST INSTALLATION 2025
+//
+// by n.h.reyes@massey.ac.nz
+//
+/////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////
+// FOR Windows SYSTEMS
+/////////////////////////////////////////////////////////////
+
+1. Download BOOST 
+
+     - link: https://www.boost.org/users/history/version_1_84_0.html
+
+     - Download the file: boost_1_87_0.zip
+
+2. DECOMPRESS THE INSTALLER to the following folder:
+	
+	C:\boost_1_87_0
+
+   Done. You can now use the latest BOOST library in your codes.
+
+/////////////////////////////////////////////////////////////
+// FOR Ubuntu SYSTEMS
+/////////////////////////////////////////////////////////////
+
+1. DOWNLOAD BOOST 
+
+	LINK: https://www.boost.org/users/download/
+
+	For Unix: boost_1_87_0.tar.gz
+
+2. DECOMPRESS THE INSTALLER INTO A TEMPORARY FOLDER
+
+3. COMPILE BOOST FROM SOURCE
+
+When building Boost from source code on Ubuntu Linux, you have several options for where to install it. The most common practice is to install it in the system directory.
+
+System Directory: If you want Boost to be available system-wide for all users, you can install it in the /usr/local directory. This is the default location for locally compiled software. You'll need administrative privileges to install it there, so you might use sudo when running the installation command.
+
+	sudo ./bootstrap.sh --prefix=/usr/local
+	sudo ./b2 install
+
+/////////////////////////////////////////////////////////////
+// FOR macOS SYSTEMS
+/////////////////////////////////////////////////////////////
+
+2. DECOMPRESS THE INSTALLER INTO A TEMPORARY FOLDER
+
+3. COMPILE BOOST FROM SOURCE
+
+When building Boost from source code on Ubuntu Linux, you have several options for where to install it. The most common practice is to install it in the system directory.
+
+System Directory: If you want Boost to be available system-wide for all users, you can install it in the /usr/local directory. This is the default location for locally compiled software. You'll need administrative privileges to install it there, so you might use sudo when running the installation command.
+
+	sudo ./bootstrap.sh --prefix=/usr/local --with-toolset=gcc
+	sudo ./b2 install
+
+4. To update the PATH variable to include the directory where Boost C++ library is installed, you need to add the appropriate path to your shell's configuration file. Since you mentioned you're using Zsh as your default shell on macOS Sonoma, you'll typically modify the .zshrc file.
+Here's how you can do it:
+
+4.1 Open your terminal.
+
+4.2 Edit your .zshrc file using a text editor like nano, vim, or code:
+	nano ~/.zshrc
+
+4.3 Add the following line to the end of the file, replacing /usr/local with the actual installation directory of Boost:
+	export PATH="/usr/local/bin:$PATH"
+
+4.4 Boost installs libraries in a different directory (e.g., /usr/local/lib), therefore include that directory as well:
+	export PATH="/usr/local/bin:/usr/local/lib:$PATH"
+
+    Moreover, it's essential for the compiler to find header files (.h or .hpp files).
+    You should include /usr/local/include in the compiler's search path for header files. You can do this by setting the C_INCLUDE_PATH and CPLUS_INCLUDE_PATH environment variables. Here's how you can do it:
+
+	export C_INCLUDE_PATH="/usr/local/include:$C_INCLUDE_PATH"
+	export CPLUS_INCLUDE_PATH="/usr/local/include:$CPLUS_INCLUDE_PATH"
+
+    In summary, this is what you should have inside the file .zshrc:
+
+	export PATH="/usr/local/bin:/usr/local/lib:$PATH"
+	export C_INCLUDE_PATH="/usr/local/include:$C_INCLUDE_PATH"
+	export CPLUS_INCLUDE_PATH="/usr/local/include:$CPLUS_INCLUDE_PATH"
+
+
+4.5 Save and close the file. In nano, you can do this by pressing Ctrl + O to write out the file, then Enter to confirm, and finally Ctrl + X to exit.
+
+4.6 After saving the .zshrc file, you need to apply the changes. You can do this by either opening a new terminal window or running the following command:
+	source ~/.zshrc
+
+These steps ensure that when you compile your C or C++ code, the compiler will look for header files in /usr/local/include as well as its default locations. 
+This is important for Boost, as its header files are typically placed in the include directory during installation.
+
+
