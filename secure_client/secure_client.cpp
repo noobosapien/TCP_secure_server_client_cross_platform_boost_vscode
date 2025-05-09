@@ -427,11 +427,14 @@ int main(int argc, char *argv[])
 	}
 
 	std::string server_key = "";
+	std::string server_rsa_n = "";
+	bool get_n = false;
 
 	for (size_t i = 0; i < strlen(receive_buffer); i++)
 	{
 
-		std::string num = "";
+		std::string s_key = "";
+		std::string s_n = "";
 
 		while (true)
 		{
@@ -442,21 +445,45 @@ int main(int argc, char *argv[])
 				break;
 			}
 
-			num.push_back(c);
+			if (c == ':')
+			{
+				get_n = true;
+				i += 2; // Consider the space
+				c = receive_buffer[i];
+			}
+
+			if (get_n)
+			{
+				s_n.push_back(c);
+			}
+			else
+			{
+				s_key.push_back(c);
+			}
+
 			i++;
 		}
 
-		bmp::cpp_int to_decrypt{num.c_str()};
-		num = "";
-
-		bmp::cpp_int decrypted = repeat_square(to_decrypt, dCA, nCA);
-
-		server_key.push_back(decrypted.convert_to<char>());
+		if (get_n)
+		{
+			bmp::cpp_int to_decrypt_n{s_n.c_str()};
+			s_n = "";
+			bmp::cpp_int decrypted_n = repeat_square(to_decrypt_n, dCA, nCA);
+			server_rsa_n.push_back(decrypted_n.convert_to<char>());
+		}
+		else
+		{
+			bmp::cpp_int to_decrypt{s_key.c_str()};
+			s_key = "";
+			bmp::cpp_int decrypted = repeat_square(to_decrypt, dCA, nCA);
+			server_key.push_back(decrypted.convert_to<char>());
+		}
 	}
 
 	bmp::cpp_int server_e{server_key.c_str()};
+	bmp::cpp_int server_n{server_rsa_n.c_str()};
 
-	std::cout << "Decrypted server public key: " << server_e << std::endl;
+	std::cout << "Decrypted server public key: " << server_e << ", Decrypted server n: " << server_n << std::endl;
 
 	n = 0;
 

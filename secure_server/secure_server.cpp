@@ -64,7 +64,7 @@ WSADATA wsadata; // Create a WSADATA object called wsadata.
 namespace bmp = boost::multiprecision;
 namespace brand = boost::random;
 
-bmp::cpp_int e, d, n;
+bmp::cpp_int e, d, rsa_n;
 bmp::cpp_int eCA = 29;
 bmp::cpp_int dCA{"3109"};
 bmp::cpp_int nCA{"3337"};
@@ -273,10 +273,10 @@ int main(int argc, char *argv[])
    //           << second << " = \n"
    //           << boost_product(first, second) << std::endl;
 
-   create_keys(e, d, n, 10);
+   create_keys(e, d, rsa_n, 10);
 
    // bmp::cpp_int cipher = repeat_square(bmp::cpp_int(202301), e, n);
-   // std::cout << "e: " << e << ", d: " << d << ", n: " << n << std::endl;
+   std::cout << "e: " << e << ", d: " << d << ", n: " << rsa_n << std::endl;
    // std::cout << "cipher: " << cipher << std::endl;
    // std::cout << "message: " << repeat_square(cipher, d, n) << std::endl;
 
@@ -583,6 +583,7 @@ int main(int argc, char *argv[])
 
       // Send the public key
       std::string pub_key = e.str();
+      std::string send_n = rsa_n.str();
       std::string send_string = "";
 
       for (auto c : pub_key)
@@ -591,6 +592,13 @@ int main(int argc, char *argv[])
          send_string.append(cipher.str() + ' ');
       }
 
+      send_string.append(": ");
+
+      for (auto c : send_n)
+      {
+         bmp::cpp_int cipher = repeat_square(bmp::cpp_int(c), eCA, nCA);
+         send_string.append(cipher.str() + ' ');
+      }
       send_string.push_back('\r');
       send_string.push_back('\n');
 
