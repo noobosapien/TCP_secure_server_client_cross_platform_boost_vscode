@@ -11,6 +11,11 @@
 #define USE_IPV6 true // if set to false, IPv4 addressing scheme will be used; you need to set this to true to
                       // enable IPv6 later on.  The assignment will be marked using IPv6!
 
+#include <deque>
+#include <vector>
+#include <random>
+#include <boost/integer/common_factor_rt.hpp>
+#include <boost/math/special_functions/prime.hpp>
 #if defined __unix__ || defined __APPLE__
 #include <unistd.h>
 #include <errno.h>
@@ -60,7 +65,10 @@ namespace bmp = boost::multiprecision;
 namespace brand = boost::random;
 
 bmp::cpp_int e, d, n;
-bmp::cpp_int dCA, eCA, nCA;
+bmp::cpp_int eCA = 29;
+bmp::cpp_int dCA{"3109"};
+bmp::cpp_int nCA{"3337"};
+
 unsigned int nonce;
 
 /////////////////////////////////////////////////////////////////////
@@ -79,7 +87,7 @@ int128_t boost_product(long long A, long long B)
 //    mt19937: mersenne twister generator referene to create random numbers
 bmp::cpp_int generate_prime(unsigned int bits, brand::mt19937 &gen)
 {
-   gen.seed(time(0)); // Seed the generator with the current time
+   // gen.seed(time(0)); // Seed the generator with the current time
 
    bmp::cpp_int value_1 = bmp::pow(bmp::cpp_int(2), bits - 1); // 2^1023 for 1024 bits
    bmp::cpp_int value_2 = bmp::pow(bmp::cpp_int(2), bits) - 1;
@@ -90,22 +98,111 @@ bmp::cpp_int generate_prime(unsigned int bits, brand::mt19937 &gen)
    do
    {
       result = dist(gen); // Get a random point in the distribution
-   } while (miller_rabin_test(result, 25, gen)); // do the trial 25 times
+   } while (!miller_rabin_test(result, 25, gen) && !miller_rabin_test((result - 1) / 2, 25, gen)); // do the trial 25 times
+   // second condition makes sure it is a prime
 
    return result; // Return the result
 }
 
-void create_keys(bmp::cpp_int &e, bmp::cpp_int &d, bmp::cpp_int &n)
+bmp::cpp_int repeat_square(bmp::cpp_int x, bmp::cpp_int e, bmp::cpp_int n)
+{
+   bmp::cpp_int y = 1;
+
+   while (e > 0)
+   {
+      if ((e % 2) == 0)
+      {
+         x = (x * x) % n;
+         e = e / 2;
+      }
+      else
+      {
+         y = (x * y) % n;
+         e = e - 1;
+      }
+   }
+
+   return y;
+}
+
+bmp::cpp_int simple_extended_euclidean(bmp::cpp_int z, bmp::cpp_int e)
+{
+   if (bmp::gcd(e, z) != 1)
+   {
+      return bmp::cpp_int(-1);
+   }
+   std::deque<bmp::cpp_int> x;
+   std::deque<bmp::cpp_int> y;
+   std::deque<bmp::cpp_int> w;
+   std::deque<bmp::cpp_int> k;
+
+   x.push_back(0);
+   x.push_back(1);
+
+   y.push_back(1);
+   y.push_back(0);
+
+   w.push_back(e);
+   w.push_back(z);
+
+   while (true)
+   {
+      if (k.size() == 2)
+         k.pop_front();
+      k.push_back(w[(w.size() - 2)] / w[(w.size() - 1)]);
+
+      if (x.size() == 3)
+         x.pop_front();
+
+      x.push_back(x[x.size() - 2] - (k[k.size() - 1] * x[x.size() - 1]));
+
+      if (y.size() == 3)
+         y.pop_front();
+
+      y.push_back(y[y.size() - 2] - (k[k.size() - 1] * y[y.size() - 1]));
+
+      if (w.size() == 3)
+         w.pop_front();
+
+      w.push_back(w[w.size() - 2] - (k[k.size() - 1] * w[w.size() - 1]));
+
+      if (w[w.size() - 1] == 1)
+      {
+         break;
+      }
+   }
+
+   if (y.size())
+   {
+      if (y[y.size() - 1] < 0)
+         return z + y[y.size() - 1];
+      return y[y.size() - 1];
+   }
+
+   return bmp::cpp_int(0);
+}
+
+void create_keys(bmp::cpp_int &e, bmp::cpp_int &d, bmp::cpp_int &n, unsigned int bits)
 {
    brand::mt19937 gen;
-   bmp::cpp_int p = generate_prime(1024, gen);
-   bmp::cpp_int q = generate_prime(1024, gen);
+   gen.seed(32);
+   bmp::cpp_int p = generate_prime(bits, gen);
+   gen.seed(64);
+   bmp::cpp_int q = generate_prime(bits, gen);
 
    n = p * q;
    bmp::cpp_int z = (p - 1) * (q - 1);
 
    // get e
+   // e = 65537; // Common value for e
+   e = generate_prime(bits, gen); // generate a new e
+
+   while ((boost::math::gcd(e, z) != 1 || e == p || e == q) && e < n) // If e and z are not co prime
+   {
+      e++; // Next number
+   }
    // get d
+   d = simple_extended_euclidean(z, e);
 }
 
 /////////////////////////////////////////////////////////////
@@ -165,16 +262,23 @@ int main(int argc, char *argv[])
    // Boost library test
    //********************************************************************
    // example #1:
-   std::cout << "\n===========================" << std::endl;
-   std::cout << "BOOST BIG NUMBER Example #1: ";
-   std::cout << "\n===========================" << std::endl;
+   // std::cout << "\n===========================" << std::endl;
+   // std::cout << "BOOST BIG NUMBER Example #1: ";
+   // std::cout << "\n===========================" << std::endl;
 
-   long long first = 98745636214564698;
-   long long second = 7459874565236544789;
+   // long long first = 98745636214564698;
+   // long long second = 7459874565236544789;
 
-   std::cout << "Product of " << first << " * "
-             << second << " = \n"
-             << boost_product(first, second);
+   // std::cout << "Product of " << first << " * "
+   //           << second << " = \n"
+   //           << boost_product(first, second) << std::endl;
+
+   create_keys(e, d, n, 10);
+
+   // bmp::cpp_int cipher = repeat_square(bmp::cpp_int(202301), e, n);
+   // std::cout << "e: " << e << ", d: " << d << ", n: " << n << std::endl;
+   // std::cout << "cipher: " << cipher << std::endl;
+   // std::cout << "message: " << repeat_square(cipher, d, n) << std::endl;
 
    //-------------------------------------------------
 
@@ -476,6 +580,56 @@ int main(int argc, char *argv[])
       //********************************************************************
       // Communicate with the Client
       //********************************************************************
+
+      // Send the public key
+      std::string pub_key = e.str();
+      std::string send_string = "";
+
+      for (auto c : pub_key)
+      {
+         bmp::cpp_int cipher = repeat_square(bmp::cpp_int(c), eCA, nCA);
+         send_string.append(cipher.str() + ' ');
+      }
+
+      send_string.push_back('\r');
+      send_string.push_back('\n');
+
+      bytes = send(ns, send_string.c_str(), strlen(send_string.c_str()), 0);
+
+      // Wait for ACK
+      n = 0;
+      while (1)
+      {
+         bytes = recv(ns, &receive_buffer[n], 1, 0);
+
+         if ((bytes < 0) || (bytes == 0))
+            break;
+
+         if (receive_buffer[n] == '\n')
+         { /*end on a LF, Note: LF is equal to one character*/
+            receive_buffer[n] = '\0';
+            break;
+         }
+         if (receive_buffer[n] != '\r')
+            n++; /*ignore CRs*/
+      }
+
+      if ((bytes < 0) || (bytes == 0))
+         break;
+
+      if (!std::string(receive_buffer).compare("ACK 226 public key recvd"))
+      {
+         std::cout << "ACK 226 received" << std::endl;
+      }
+      else
+      {
+         break;
+      }
+
+      // Wait for nonce
+      n = 0;
+      // Send ACK
+
       printf("\n--------------------------------------------\n");
       printf("the <<<SERVER>>> is waiting to receive messages.\n");
 

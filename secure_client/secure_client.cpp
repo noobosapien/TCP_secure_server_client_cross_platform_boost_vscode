@@ -57,6 +57,7 @@ WSADATA wsadata; // Create a WSADATA object called wsadata.
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 using namespace std;
+namespace bmp = boost::multiprecision;
 /////////////////////////////////////////////////////////////////////
 
 void printBuffer(const char *header, char *buffer)
@@ -81,6 +82,27 @@ void printBuffer(const char *header, char *buffer)
 	std::cout << "---" << std::endl;
 }
 
+bmp::cpp_int repeat_square(bmp::cpp_int x, bmp::cpp_int e, bmp::cpp_int n)
+{
+	bmp::cpp_int y = 1;
+
+	while (e > 0)
+	{
+		if ((e % 2) == 0)
+		{
+			x = (x * x) % n;
+			e = e / 2;
+		}
+		else
+		{
+			y = (x * y) % n;
+			e = e - 1;
+		}
+	}
+
+	return y;
+}
+
 /////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[])
 {
@@ -90,6 +112,9 @@ int main(int argc, char *argv[])
 	//*******************************************************************
 
 	char portNum[12];
+	bmp::cpp_int eCA = 29;
+	bmp::cpp_int dCA{"3109"};
+	bmp::cpp_int nCA{"3337"};
 
 #if defined __unix__ || defined __APPLE__
 	int s;
@@ -369,6 +394,79 @@ int main(int argc, char *argv[])
 		}
 		//--------------------------------------------------------------------------------
 	}
+
+	// Get the certificate
+	n = 0;
+	while (1)
+	{
+
+		bytes = recv(s, &receive_buffer[n], 1, 0);
+
+#if defined __unix__ || defined __APPLE__
+		if ((bytes == -1) || (bytes == 0))
+		{
+			printf("recv failed\n");
+			exit(1);
+		}
+
+#elif defined _WIN32
+		if ((bytes == SOCKET_ERROR) || (bytes == 0))
+		{
+			printf("recv failed\n");
+			exit(1);
+		}
+#endif
+
+		if (receive_buffer[n] == '\n')
+		{ /*end on a LF*/
+			receive_buffer[n] = '\0';
+			break;
+		}
+		if (receive_buffer[n] != '\r')
+			n++; /*ignore CR's*/
+	}
+
+	std::string server_key = "";
+
+	for (size_t i = 0; i < strlen(receive_buffer); i++)
+	{
+
+		std::string num = "";
+
+		while (true)
+		{
+			char c = receive_buffer[i];
+
+			if (c == ' ' || i >= strlen(receive_buffer))
+			{
+				break;
+			}
+
+			num.push_back(c);
+			i++;
+		}
+
+		bmp::cpp_int to_decrypt{num.c_str()};
+		num = "";
+
+		bmp::cpp_int decrypted = repeat_square(to_decrypt, dCA, nCA);
+
+		server_key.push_back(decrypted.convert_to<char>());
+	}
+
+	bmp::cpp_int server_e{server_key.c_str()};
+
+	std::cout << "Decrypted server public key: " << server_e << std::endl;
+
+	n = 0;
+
+	// Send ACK 226 public key recvd
+	memset(&send_buffer, 0, BUFFER_SIZE);
+	sprintf(send_buffer, "ACK 226 public key recvd\r\n");
+	bytes = send(s, send_buffer, strlen(send_buffer), 0);
+
+	// Send encrypted nonce
+	// Wait for ACK 220 nonce OK
 
 	//*******************************************************************
 	// Get input while user don't type "."
