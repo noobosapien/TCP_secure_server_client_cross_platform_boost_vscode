@@ -636,6 +636,29 @@ int main(int argc, char *argv[])
 
       // Wait for nonce
       n = 0;
+      while (1)
+      {
+         bytes = recv(ns, &receive_buffer[n], 1, 0);
+
+         if ((bytes < 0) || (bytes == 0))
+            break;
+
+         if (receive_buffer[n] == '\n')
+         { /*end on a LF, Note: LF is equal to one character*/
+            receive_buffer[n] = '\0';
+            break;
+         }
+         if (receive_buffer[n] != '\r')
+            n++; /*ignore CRs*/
+      }
+
+      if ((bytes < 0) || (bytes == 0))
+         break;
+
+      bmp::cpp_int e_nonce{receive_buffer};
+      bmp::cpp_int nonce = repeat_square(e_nonce, d, rsa_n);
+      std::cout << "e_nonce: " << receive_buffer << " nonce: " << nonce << std::endl;
+
       // Send ACK
 
       printf("\n--------------------------------------------\n");

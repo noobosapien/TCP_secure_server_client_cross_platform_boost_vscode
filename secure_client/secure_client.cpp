@@ -493,6 +493,15 @@ int main(int argc, char *argv[])
 	bytes = send(s, send_buffer, strlen(send_buffer), 0);
 
 	// Send encrypted nonce
+	std::srand(std::time(0));
+	bmp::cpp_int nonce = std::rand() % 9000 + 1000; // 4 digit nonce
+	bmp::cpp_int e_nonce = repeat_square(nonce, server_e, server_n);
+
+	std::cout << "nonce: " << nonce << ", encrypted nonce: " << e_nonce << std::endl;
+	memset(&send_buffer, 0, BUFFER_SIZE);
+	sprintf(send_buffer, "%s\r\n", e_nonce.str().c_str());
+	bytes = send(s, send_buffer, strlen(send_buffer), 0);
+
 	// Wait for ACK 220 nonce OK
 
 	//*******************************************************************
