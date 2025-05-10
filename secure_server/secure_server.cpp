@@ -250,6 +250,68 @@ void printBuffer(const char *header, char *buffer)
    std::cout << "---" << std::endl;
 }
 
+void remove_delimiter(std::vector<bmp::cpp_int> &all_text, std::string msg)
+{
+   std::string word = "";
+
+   for (size_t i = 0; i < msg.length(); i++)
+   {
+      char c = msg[i];
+
+      while (true)
+      {
+         if (c == ' ' || i >= msg.length())
+         {
+            break;
+         }
+
+         word.push_back(c);
+         i++;
+         c = msg[i];
+      }
+
+      if (word != " ")
+         all_text.push_back(bmp::cpp_int{word});
+      word = "";
+   }
+}
+
+// Args
+// 	msg: message to decrypt
+//		nonce: the first random number of CBC
+//		server_d: servers decryption key
+//		server_n: servers decryption n
+std::string decrypt_message(std::string msg, bmp::cpp_int nonce, bmp::cpp_int server_d, bmp::cpp_int server_n)
+{
+   std::string result = "";
+
+   std::string to_str = "";
+   bmp::cpp_int rand_num = nonce;
+
+   std::vector<bmp::cpp_int> all_text;
+
+   remove_delimiter(all_text, msg);
+
+   bmp::cpp_int rsa_decrypt = repeat_square(all_text[0], server_d, server_n);
+   bmp::cpp_int message = rand_num ^ rsa_decrypt;
+   result.push_back(message.convert_to<char>());
+
+   for (size_t i = 1; i < all_text.size(); i++)
+   {
+      rand_num = all_text[i - 1];
+      // 1st RSA
+      bmp::cpp_int rsa_decrypt = repeat_square(all_text[i], server_d, server_n);
+      // 2nd CBC
+      bmp::cpp_int message = rand_num ^ rsa_decrypt;
+
+      result.push_back(message.convert_to<char>());
+   }
+
+   result.append("\r\n");
+
+   return result;
+}
+
 /////////////////////////////////////////////////////////////////////
 
 //*******************************************************************
@@ -657,9 +719,13 @@ int main(int argc, char *argv[])
 
       bmp::cpp_int e_nonce{receive_buffer};
       bmp::cpp_int nonce = repeat_square(e_nonce, d, rsa_n);
-      std::cout << "e_nonce: " << receive_buffer << " nonce: " << nonce << std::endl;
+      std::cout << "e_nonce: " << receive_buffer << " nonce: " << nonce << " rsa_n: " << rsa_n << std::endl;
 
       // Send ACK
+      memset(&send_buffer, 0, BUFFER_SIZE);
+      sprintf(send_buffer, "ACK 220 nonce OK\r\n");
+      printf("ACK 220 nonce OK sent");
+      bytes = send(ns, send_buffer, strlen(send_buffer), 0);
 
       printf("\n--------------------------------------------\n");
       printf("the <<<SERVER>>> is waiting to receive messages.\n");
@@ -694,13 +760,17 @@ int main(int argc, char *argv[])
          // PROCESS REQUEST
          //********************************************************************
          printf("MSG RECEIVED <--: %s\n", receive_buffer);
+         std::string to_send = decrypt_message(std::string(receive_buffer), nonce, d, rsa_n);
+         printf("DECRYPTED MESSAGE -->: %s\n", to_send.c_str());
+
          // printBuffer("RECEIVE_BUFFER", receive_buffer);
 
          //********************************************************************
          // SEND
          //********************************************************************
-         bytes = send(ns, send_buffer, strlen(send_buffer), 0);
-         printf("MSG SENT --> %s\n", send_buffer);
+         std::cout << "MSG sent --> " << to_send << std::endl;
+         bytes = send(ns, to_send.c_str(), to_send.length(), 0);
+         // bytes = send(ns, send_buffer, strlen(send_buffer), 0);
          // printBuffer("SEND_BUFFER", send_buffer);
 
 #if defined __unix__ || defined __APPLE__

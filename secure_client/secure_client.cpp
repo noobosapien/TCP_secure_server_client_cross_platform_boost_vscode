@@ -103,6 +103,37 @@ bmp::cpp_int repeat_square(bmp::cpp_int x, bmp::cpp_int e, bmp::cpp_int n)
 	return y;
 }
 
+// Args
+// 		msg: message to encrypt
+//		nonce: the first random number of CBC
+//		server_e: servers encryption key
+//		server_n: servers encryption n
+std::string encrypt_message(std::string msg, bmp::cpp_int nonce, bmp::cpp_int server_e, bmp::cpp_int server_n)
+{
+	std::string result = "";
+
+	std::string cbc_str = "";
+	bmp::cpp_int rand_num = nonce;
+
+	for (size_t i = 0; i < msg.length(); i++)
+	{
+		// 1st CBC
+		char c = msg[i];
+		bmp::cpp_int cipher = rand_num ^ c;
+
+		// 2nd RSA
+		bmp::cpp_int rsa_cipher = repeat_square(cipher, server_e, server_n);
+		rand_num = rsa_cipher;
+
+		result.append(rsa_cipher.str());
+		result.append(" ");
+	}
+
+	result.append("\r\n");
+
+	return result;
+}
+
 /////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[])
 {
@@ -494,15 +525,53 @@ int main(int argc, char *argv[])
 
 	// Send encrypted nonce
 	std::srand(std::time(0));
-	bmp::cpp_int nonce = std::rand() % 9000 + 1000; // 4 digit nonce
+	bmp::cpp_int nonce = std::rand() % 9000 + 1000; // 4 digit nonce max 9999 (14 bits)
 	bmp::cpp_int e_nonce = repeat_square(nonce, server_e, server_n);
 
-	std::cout << "nonce: " << nonce << ", encrypted nonce: " << e_nonce << std::endl;
 	memset(&send_buffer, 0, BUFFER_SIZE);
 	sprintf(send_buffer, "%s\r\n", e_nonce.str().c_str());
 	bytes = send(s, send_buffer, strlen(send_buffer), 0);
 
 	// Wait for ACK 220 nonce OK
+	n = 0;
+	while (1)
+	{
+
+		bytes = recv(s, &receive_buffer[n], 1, 0);
+
+#if defined __unix__ || defined __APPLE__
+		if ((bytes == -1) || (bytes == 0))
+		{
+			printf("recv failed\n");
+			exit(1);
+		}
+
+#elif defined _WIN32
+		if ((bytes == SOCKET_ERROR) || (bytes == 0))
+		{
+			printf("recv failed\n");
+			exit(1);
+		}
+#endif
+
+		if (receive_buffer[n] == '\n')
+		{ /*end on a LF*/
+			receive_buffer[n] = '\0';
+			break;
+		}
+		if (receive_buffer[n] != '\r')
+			n++; /*ignore CR's*/
+	}
+
+	if (!std::string(receive_buffer).compare("ACK 220 nonce OK"))
+	{
+		std::cout << "ACK 220 nonce OK recieved" << std::endl;
+	}
+	else
+	{
+		printf("error recieving ACK 220 nonce OK\n");
+		exit(1);
+	}
 
 	//*******************************************************************
 	// Get input while user don't type "."
@@ -527,9 +596,12 @@ int main(int argc, char *argv[])
 		// SEND
 		//*******************************************************************
 
-		bytes = send(s, send_buffer, strlen(send_buffer), 0);
-		printf("\nMSG SENT <--: %s\n", send_buffer); // line sent
-		printf("Message length: %d \n", (int)strlen(send_buffer));
+		std::string encrypted_msg = encrypt_message(std::string(send_buffer), nonce, server_e, server_n);
+
+		// bytes = send(s, send_buffer, strlen(send_buffer), 0);
+		bytes = send(s, encrypted_msg.c_str(), encrypted_msg.length(), 0);
+		printf("\nMSG SENT <--: %s\n", encrypted_msg.c_str()); // line sent
+		printf("Message length: %d \n", (int)encrypted_msg.length());
 
 #if defined __unix__ || defined __APPLE__
 		if (bytes == -1)
