@@ -307,7 +307,7 @@ std::string decrypt_message(std::string msg, bmp::cpp_int nonce, bmp::cpp_int se
       result.push_back(message.convert_to<char>());
    }
 
-   result.append("\r\n");
+   // result.append("\r\n");
 
    return result;
 }
@@ -754,24 +754,20 @@ int main(int argc, char *argv[])
 
          if ((bytes < 0) || (bytes == 0))
             break;
-         sprintf(send_buffer, "Message:'%s' - There are %d bytes of information\r\n", receive_buffer, n);
 
          //********************************************************************
          // PROCESS REQUEST
          //********************************************************************
          printf("MSG RECEIVED <--: %s\n", receive_buffer);
          std::string to_send = decrypt_message(std::string(receive_buffer), nonce, d, rsa_n);
+         sprintf(send_buffer, "Message:'%s' - There are %d bytes of information\r\n", to_send.c_str(), to_send.length());
          printf("DECRYPTED MESSAGE -->: %s\n", to_send.c_str());
-
-         // printBuffer("RECEIVE_BUFFER", receive_buffer);
 
          //********************************************************************
          // SEND
          //********************************************************************
-         std::cout << "MSG sent --> " << to_send << std::endl;
-         bytes = send(ns, to_send.c_str(), to_send.length(), 0);
-         // bytes = send(ns, send_buffer, strlen(send_buffer), 0);
-         // printBuffer("SEND_BUFFER", send_buffer);
+         std::cout << "MSG sent --> " << send_buffer << std::endl;
+         bytes = send(ns, send_buffer, strlen(send_buffer), 0);
 
 #if defined __unix__ || defined __APPLE__
          if (bytes < 0)

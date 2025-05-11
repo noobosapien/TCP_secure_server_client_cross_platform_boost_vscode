@@ -129,7 +129,7 @@ std::string encrypt_message(std::string msg, bmp::cpp_int nonce, bmp::cpp_int se
 		result.append(" ");
 	}
 
-	result.append("\r\n");
+	// result.append("\r\n");
 
 	return result;
 }
@@ -589,17 +589,19 @@ int main(int argc, char *argv[])
 	// while ((strncmp(send_buffer,".",1) != 0) && (strncmp(send_buffer,"\n",1) != 0)) {
 	while ((strncmp(send_buffer, ".", 1) != 0))
 	{
-		send_buffer[strlen(send_buffer) - 1] = '\0'; // strip '\n'
 
-		strcat(send_buffer, "\r\n");
+		// strcat(send_buffer, "\r\n");
 		//*******************************************************************
 		// SEND
 		//*******************************************************************
+		send_buffer[strlen(send_buffer) - 1] = '\0'; // remove the \n
 
 		std::string encrypted_msg = encrypt_message(std::string(send_buffer), nonce, server_e, server_n);
+		sprintf(send_buffer, "%s\r\n", encrypted_msg.c_str());
+		// send_buffer[strlen(send_buffer) - 1] = '\0'; // strip '\n'
 
-		// bytes = send(s, send_buffer, strlen(send_buffer), 0);
-		bytes = send(s, encrypted_msg.c_str(), encrypted_msg.length(), 0);
+		bytes = send(s, send_buffer, strlen(send_buffer), 0);
+		// bytes = send(s, encrypted_msg.c_str(), encrypted_msg.length(), 0);
 		printf("\nMSG SENT <--: %s\n", encrypted_msg.c_str()); // line sent
 		printf("Message length: %d \n", (int)encrypted_msg.length());
 
