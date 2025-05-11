@@ -86,6 +86,11 @@ void printBuffer(const char *header, char *buffer)
 	std::cout << "---" << std::endl;
 }
 
+// Encrypts or decrypts a message
+// Args:
+//    x : the message to encrypt/decrypt
+//    e : the public/private key
+//    n : the n value of the RSA key
 bmp::cpp_int repeat_square(bmp::cpp_int x, bmp::cpp_int e, bmp::cpp_int n)
 {
 	bmp::cpp_int y = 1;
@@ -107,6 +112,7 @@ bmp::cpp_int repeat_square(bmp::cpp_int x, bmp::cpp_int e, bmp::cpp_int n)
 	return y;
 }
 
+// Encrypts a message including CBC
 // Args
 // 		msg: message to encrypt
 //		nonce: the first random number of CBC
@@ -132,8 +138,6 @@ std::string encrypt_message(std::string msg, bmp::cpp_int nonce, bmp::cpp_int se
 		result.append(rsa_cipher.str());
 		result.append(" ");
 	}
-
-	// result.append("\r\n");
 
 	return result;
 }
@@ -430,7 +434,7 @@ int main(int argc, char *argv[])
 		//--------------------------------------------------------------------------------
 	}
 
-	// Get the certificate
+	// Get the server's public key
 	n = 0;
 	while (1)
 	{
@@ -461,9 +465,9 @@ int main(int argc, char *argv[])
 			n++; /*ignore CR's*/
 	}
 
-	std::string server_key = "";
-	std::string server_rsa_n = "";
-	bool get_n = false;
+	std::string server_key = "";   // public key od the server
+	std::string server_rsa_n = ""; // n value of the key
+	bool get_n = false;			   // use after the delimeter :
 
 	for (size_t i = 0; i < strlen(receive_buffer); i++)
 	{
@@ -606,7 +610,6 @@ int main(int argc, char *argv[])
 		printf("\nMSG PLAINTEXT: %s\n", send_buffer); // Show plain text
 		std::string encrypted_msg = encrypt_message(std::string(send_buffer), nonce, server_e, server_n);
 		sprintf(send_buffer, "%s\r\n", encrypted_msg.c_str());
-		// send_buffer[strlen(send_buffer) - 1] = '\0'; // strip '\n'
 
 		bytes = send(s, send_buffer, strlen(send_buffer), 0);
 		printf("MSG ENCRYPTED: %s\n", encrypted_msg.c_str());

@@ -115,6 +115,11 @@ bmp::cpp_int generate_prime(unsigned int bits, brand::mt19937 &gen)
    return result; // Return the result
 }
 
+// Encrypts or decrypts a message
+// Args:
+//    x : the message to encrypt/decrypt
+//    e : the public/private key
+//    n : the n value of the RSA key
 bmp::cpp_int repeat_square(bmp::cpp_int x, bmp::cpp_int e, bmp::cpp_int n)
 {
    bmp::cpp_int y = 1;
@@ -136,6 +141,10 @@ bmp::cpp_int repeat_square(bmp::cpp_int x, bmp::cpp_int e, bmp::cpp_int n)
    return y;
 }
 
+// Calculates the private key
+// Args:
+//    z : (p-1) (q-1)
+//    e : the public key
 bmp::cpp_int simple_extended_euclidean(bmp::cpp_int z, bmp::cpp_int e)
 {
    if (bmp::gcd(e, z) != 1)
@@ -193,12 +202,18 @@ bmp::cpp_int simple_extended_euclidean(bmp::cpp_int z, bmp::cpp_int e)
    return bmp::cpp_int(0);
 }
 
+// Creates the keys for the number of given bits
+// Args:
+//    e : the public key to be created
+//    d : the private key to be created
+//    n : the n value of RSA to be created
+//    bits : the number of bits the keys should be
 void create_keys(bmp::cpp_int &e, bmp::cpp_int &d, bmp::cpp_int &n, unsigned int bits)
 {
-   brand::mt19937 gen;
-   gen.seed(32);
+   brand::mt19937 gen; // create a generator for random numbers
+   gen.seed(32);       // different seed for p
    bmp::cpp_int p = generate_prime(bits, gen);
-   gen.seed(64);
+   gen.seed(64); // different seed for q
    bmp::cpp_int q = generate_prime(bits, gen);
 
    n = p * q;
@@ -261,6 +276,10 @@ void printBuffer(const char *header, char *buffer)
    std::cout << "---" << std::endl;
 }
 
+// Removes the spaces from a given message and adds it to a given vector
+// Args:
+//    all_text : the vector to insert into
+//    msg : message to be sliced
 void remove_delimiter(std::vector<bmp::cpp_int> &all_text, std::string msg)
 {
    std::string word = "";
@@ -276,17 +295,18 @@ void remove_delimiter(std::vector<bmp::cpp_int> &all_text, std::string msg)
             break;
          }
 
-         word.push_back(c);
+         word.push_back(c); // push each character to the word if its not a space
          i++;
          c = msg[i];
       }
 
       if (word != " ")
-         all_text.push_back(bmp::cpp_int{word});
-      word = "";
+         all_text.push_back(bmp::cpp_int{word}); // push the word into the vector
+      word = "";                                 // refresh the word
    }
 }
 
+// Decrypts a received message including CBC
 // Args
 // 	msg: message to decrypt
 //		nonce: the first random number of CBC
@@ -301,13 +321,13 @@ std::string decrypt_message(std::string msg, bmp::cpp_int nonce, bmp::cpp_int se
 
    std::vector<bmp::cpp_int> all_text;
 
-   remove_delimiter(all_text, msg);
+   remove_delimiter(all_text, msg); // remove the space from the received input
 
-   bmp::cpp_int rsa_decrypt = repeat_square(all_text[0], server_d, server_n);
-   bmp::cpp_int message = rand_num ^ rsa_decrypt;
-   result.push_back(message.convert_to<char>());
+   bmp::cpp_int rsa_decrypt = repeat_square(all_text[0], server_d, server_n); // decrypt the RSA
+   bmp::cpp_int message = rand_num ^ rsa_decrypt;                             // decrypt CBC
+   result.push_back(message.convert_to<char>());                              // enter that part to the result
 
-   for (size_t i = 1; i < all_text.size(); i++)
+   for (size_t i = 1; i < all_text.size(); i++) // for the remaining sections of the message do the same
    {
       rand_num = all_text[i - 1];
       // 1st RSA
@@ -317,8 +337,6 @@ std::string decrypt_message(std::string msg, bmp::cpp_int nonce, bmp::cpp_int se
 
       result.push_back(message.convert_to<char>());
    }
-
-   // result.append("\r\n");
 
    return result;
 }
@@ -346,7 +364,7 @@ int main(int argc, char *argv[])
    //           << second << " = \n"
    //           << boost_product(first, second) << std::endl;
 
-   create_keys(e, d, rsa_n, 10);
+   create_keys(e, d, rsa_n, 10); // create the public and the private keys
 
    std::cout << "Public key: (" << e << ", " << rsa_n << ")" << std::endl;
    std::cout << "Private key: (" << d << ", " << rsa_n << ")" << std::endl;
@@ -676,7 +694,7 @@ int main(int argc, char *argv[])
       send_string.push_back('\r');
       send_string.push_back('\n');
 
-      bytes = send(ns, send_string.c_str(), strlen(send_string.c_str()), 0);
+      bytes = send(ns, send_string.c_str(), strlen(send_string.c_str()), 0); // send the server public key to the client
 
       // Wait for ACK
       n = 0;
@@ -699,7 +717,7 @@ int main(int argc, char *argv[])
       if ((bytes < 0) || (bytes == 0))
          break;
 
-      if (!std::string(receive_buffer).compare("ACK 226 public key recvd"))
+      if (!std::string(receive_buffer).compare("ACK 226 public key recvd")) // if this is received good to go
       {
          std::cout << "ACK 226 received" << std::endl;
       }
@@ -729,8 +747,8 @@ int main(int argc, char *argv[])
       if ((bytes < 0) || (bytes == 0))
          break;
 
-      bmp::cpp_int e_nonce{receive_buffer};
-      bmp::cpp_int nonce = repeat_square(e_nonce, d, rsa_n);
+      bmp::cpp_int e_nonce{receive_buffer};                  // encrypted nonce from the client
+      bmp::cpp_int nonce = repeat_square(e_nonce, d, rsa_n); // decrypt it
 
       std::cout
           << "\nEncrypted nonce: " << receive_buffer << " nonce: " << nonce << std::endl;
@@ -739,7 +757,7 @@ int main(int argc, char *argv[])
       memset(&send_buffer, 0, BUFFER_SIZE);
       sprintf(send_buffer, "ACK 220 nonce OK\r\n");
       printf("\nACK 220 nonce OK\n");
-      bytes = send(ns, send_buffer, strlen(send_buffer), 0);
+      bytes = send(ns, send_buffer, strlen(send_buffer), 0); // send to the client that the nonce was received
 
       printf("\n--------------------------------------------\n");
       printf("the <<<SERVER>>> is waiting to receive messages.\n\n");
