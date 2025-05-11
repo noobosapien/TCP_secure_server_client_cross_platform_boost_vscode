@@ -12,6 +12,10 @@
 //
 //////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
+Mallikaarachchi, Migara, 23005134, Assignment 2, 159.342
+*/
+
 #define DEFAULT_PORT "1234"
 #define USE_IPV6 true // if set to false, IPv4 addressing scheme will be used; you need to set this to true to
 					  // enable IPv6 later on.  The assignment will be marked using IPv6!
@@ -476,7 +480,7 @@ int main(int argc, char *argv[])
 				break;
 			}
 
-			if (c == ':')
+			if (c == ':') // Skip the delimeter
 			{
 				get_n = true;
 				i += 2; // Consider the space
@@ -499,21 +503,21 @@ int main(int argc, char *argv[])
 		{
 			bmp::cpp_int to_decrypt_n{s_n.c_str()};
 			s_n = "";
-			bmp::cpp_int decrypted_n = repeat_square(to_decrypt_n, dCA, nCA);
+			bmp::cpp_int decrypted_n = repeat_square(to_decrypt_n, eCA, nCA); // Use server public key to decrypt
 			server_rsa_n.push_back(decrypted_n.convert_to<char>());
 		}
 		else
 		{
 			bmp::cpp_int to_decrypt{s_key.c_str()};
 			s_key = "";
-			bmp::cpp_int decrypted = repeat_square(to_decrypt, dCA, nCA);
+			bmp::cpp_int decrypted = repeat_square(to_decrypt, eCA, nCA); // Use server public key to decrypt
 			server_key.push_back(decrypted.convert_to<char>());
 		}
 	}
 
 	bmp::cpp_int server_e{server_key.c_str()};
 	bmp::cpp_int server_n{server_rsa_n.c_str()};
-
+	std::cout << "\nEncrypted server public key & n: " << receive_buffer << std::endl;
 	std::cout << "Decrypted server public key: " << server_e << ", Decrypted server n: " << server_n << std::endl;
 
 	n = 0;
@@ -521,6 +525,7 @@ int main(int argc, char *argv[])
 	// Send ACK 226 public key recvd
 	memset(&send_buffer, 0, BUFFER_SIZE);
 	sprintf(send_buffer, "ACK 226 public key recvd\r\n");
+	printf("ACK 226 public key recvd sent\n");
 	bytes = send(s, send_buffer, strlen(send_buffer), 0);
 
 	// Send encrypted nonce
@@ -530,6 +535,8 @@ int main(int argc, char *argv[])
 
 	memset(&send_buffer, 0, BUFFER_SIZE);
 	sprintf(send_buffer, "%s\r\n", e_nonce.str().c_str());
+	std::cout << "Nonce: " << nonce << std::endl;
+	std::cout << "Encrypted nonce: " << e_nonce << std::endl;
 	bytes = send(s, send_buffer, strlen(send_buffer), 0);
 
 	// Wait for ACK 220 nonce OK
@@ -596,13 +603,14 @@ int main(int argc, char *argv[])
 		//*******************************************************************
 		send_buffer[strlen(send_buffer) - 1] = '\0'; // remove the \n
 
+		printf("\nMSG PLAINTEXT: %s\n", send_buffer); // Show plain text
 		std::string encrypted_msg = encrypt_message(std::string(send_buffer), nonce, server_e, server_n);
 		sprintf(send_buffer, "%s\r\n", encrypted_msg.c_str());
 		// send_buffer[strlen(send_buffer) - 1] = '\0'; // strip '\n'
 
 		bytes = send(s, send_buffer, strlen(send_buffer), 0);
-		// bytes = send(s, encrypted_msg.c_str(), encrypted_msg.length(), 0);
-		printf("\nMSG SENT <--: %s\n", encrypted_msg.c_str()); // line sent
+		printf("MSG ENCRYPTED: %s\n", encrypted_msg.c_str());
+		printf("MSG SENT <--: %s\n", encrypted_msg.c_str()); // line sent
 		printf("Message length: %d \n", (int)encrypted_msg.length());
 
 #if defined __unix__ || defined __APPLE__

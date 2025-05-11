@@ -7,15 +7,14 @@
 //
 //////////////////////////////////////////////////////////////
 
+/*
+Mallikaarachchi, Migara, 23005134, Assignment 2, 159.342
+*/
+
 #define DEFAULT_PORT "1234"
 #define USE_IPV6 true // if set to false, IPv4 addressing scheme will be used; you need to set this to true to
                       // enable IPv6 later on.  The assignment will be marked using IPv6!
 
-#include <deque>
-#include <vector>
-#include <random>
-#include <boost/integer/common_factor_rt.hpp>
-#include <boost/math/special_functions/prime.hpp>
 #if defined __unix__ || defined __APPLE__
 #include <unistd.h>
 #include <errno.h>
@@ -27,6 +26,12 @@
 #include <arpa/inet.h>
 #include <netdb.h> //used by getnameinfo()
 #include <iostream>
+
+#include <deque>
+#include <vector>
+#include <random>
+#include <boost/integer/common_factor_rt.hpp>
+#include <boost/math/special_functions/prime.hpp>
 
 #include <boost/multiprecision/miller_rabin.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
@@ -45,6 +50,12 @@ using namespace boost::multiprecision;
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+
+#include <deque>
+#include <vector>
+#include <random>
+#include <boost/integer/common_factor_rt.hpp>
+#include <boost/math/special_functions/prime.hpp>
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -337,10 +348,11 @@ int main(int argc, char *argv[])
 
    create_keys(e, d, rsa_n, 10);
 
-   // bmp::cpp_int cipher = repeat_square(bmp::cpp_int(202301), e, n);
-   std::cout << "e: " << e << ", d: " << d << ", n: " << rsa_n << std::endl;
-   // std::cout << "cipher: " << cipher << std::endl;
-   // std::cout << "message: " << repeat_square(cipher, d, n) << std::endl;
+   std::cout << "Public key: (" << e << ", " << rsa_n << ")" << std::endl;
+   std::cout << "Private key: (" << d << ", " << rsa_n << ")" << std::endl;
+
+   std::cout << "CA Public key: (" << eCA << ", " << nCA << ")" << std::endl;
+   std::cout << "CA Private key: (" << dCA << ", " << nCA << ")" << std::endl;
 
    //-------------------------------------------------
 
@@ -650,15 +662,15 @@ int main(int argc, char *argv[])
 
       for (auto c : pub_key)
       {
-         bmp::cpp_int cipher = repeat_square(bmp::cpp_int(c), eCA, nCA);
+         bmp::cpp_int cipher = repeat_square(bmp::cpp_int(c), dCA, nCA); // Use CA private key to encrypt
          send_string.append(cipher.str() + ' ');
       }
 
-      send_string.append(": ");
+      send_string.append(": "); // The delimeter
 
       for (auto c : send_n)
       {
-         bmp::cpp_int cipher = repeat_square(bmp::cpp_int(c), eCA, nCA);
+         bmp::cpp_int cipher = repeat_square(bmp::cpp_int(c), dCA, nCA); // Use CA private key to encrypt
          send_string.append(cipher.str() + ' ');
       }
       send_string.push_back('\r');
@@ -719,16 +731,18 @@ int main(int argc, char *argv[])
 
       bmp::cpp_int e_nonce{receive_buffer};
       bmp::cpp_int nonce = repeat_square(e_nonce, d, rsa_n);
-      std::cout << "e_nonce: " << receive_buffer << " nonce: " << nonce << " rsa_n: " << rsa_n << std::endl;
+
+      std::cout
+          << "\nEncrypted nonce: " << receive_buffer << " nonce: " << nonce << std::endl;
 
       // Send ACK
       memset(&send_buffer, 0, BUFFER_SIZE);
       sprintf(send_buffer, "ACK 220 nonce OK\r\n");
-      printf("ACK 220 nonce OK sent");
+      printf("\nACK 220 nonce OK\n");
       bytes = send(ns, send_buffer, strlen(send_buffer), 0);
 
       printf("\n--------------------------------------------\n");
-      printf("the <<<SERVER>>> is waiting to receive messages.\n");
+      printf("the <<<SERVER>>> is waiting to receive messages.\n\n");
 
       while (1)
       {
@@ -760,7 +774,7 @@ int main(int argc, char *argv[])
          //********************************************************************
          printf("MSG RECEIVED <--: %s\n", receive_buffer);
          std::string to_send = decrypt_message(std::string(receive_buffer), nonce, d, rsa_n);
-         sprintf(send_buffer, "Message:'%s' - There are %d bytes of information\r\n", to_send.c_str(), to_send.length());
+         sprintf(send_buffer, "Message:'%s' - There are %d bytes of information\r\n", to_send.c_str(), (int)to_send.length());
          printf("DECRYPTED MESSAGE -->: %s\n", to_send.c_str());
 
          //********************************************************************
